@@ -68,10 +68,15 @@ public class SelectImageActivity extends AppCompatActivity {
 
         // Create request to get image from filesystem when button clicked
         binding.selectImage.setOnClickListener(view -> {
-            Intent chooseIntent = new Intent(
-                    Intent.ACTION_PICK,
-                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            startActivityForResult(chooseIntent, REQUEST_CODE_IMAGE);
+            // note: 2 ways to choose pictures.
+            Intent getContentIntent = new Intent(Intent.ACTION_GET_CONTENT);
+            getContentIntent.setType("image/*");
+            startActivityForResult(Intent.createChooser(getContentIntent,"Select picture"),REQUEST_CODE_IMAGE);
+
+//            Intent chooseIntent = new Intent(
+//                    Intent.ACTION_PICK,
+//                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+//            startActivityForResult(chooseIntent, REQUEST_CODE_IMAGE);
         });
     }
 
