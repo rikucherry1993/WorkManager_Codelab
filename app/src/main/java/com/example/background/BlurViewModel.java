@@ -16,16 +16,22 @@
 
 package com.example.background;
 
-import androidx.annotation.NonNull;
-import androidx.lifecycle.AndroidViewModel;
-import androidx.work.OneTimeWorkRequest;
-import androidx.work.WorkManager;
-
 import android.app.Application;
 import android.net.Uri;
 import android.text.TextUtils;
 
+import androidx.annotation.NonNull;
+import androidx.lifecycle.AndroidViewModel;
+import androidx.work.Data;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkContinuation;
+import androidx.work.WorkManager;
+
 import com.example.background.workers.BlurWorker;
+import com.example.background.workers.CleanupWorker;
+import com.example.background.workers.SaveImageToFileWorker;
+
+import static com.example.background.Constants.KEY_IMAGE_URI;
 
 public class BlurViewModel extends AndroidViewModel {
 
@@ -42,10 +48,27 @@ public class BlurViewModel extends AndroidViewModel {
      * @param blurLevel The amount to blur the image
      */
     void applyBlur(int blurLevel) {
-        mWorkManager.enqueue(OneTimeWorkRequest.from(BlurWorker.class));
+//        mWorkManager.enqueue(OneTimeWorkRequest.from(BlurWorker.class));
 
         //note: 写法2
-//        mWorkManager.enqueue(new OneTimeWorkRequest.Builder(BlurWorker.class).build());
+//        mWorkManager.enqueue(new OneTimeWorkRequest.Builder(BlurWorker.class)
+//                .setInputData(createInputDataForUri())
+//                .build());
+
+        //note: 连锁work
+        WorkContinuation continuation = mWorkManager.beginWith(
+                new OneTimeWorkRequest.Builder(CleanupWorker.class).build()
+        );
+
+        continuation = continuation.then(
+                new OneTimeWorkRequest.Builder(BlurWorker.class)
+                        .setInputData(createInputDataForUri())
+                        .build()
+        );
+        continuation = continuation.then(new OneTimeWorkRequest.Builder(SaveImageToFileWorker.class).build());
+
+
+        continuation.enqueue();
     }
 
     private Uri uriOrNull(String uriString) {
@@ -67,6 +90,16 @@ public class BlurViewModel extends AndroidViewModel {
      */
     Uri getImageUri() {
         return mImageUri;
+    }
+
+
+    private Data createInputDataForUri(){
+        Data.Builder builder = new Data.Builder();
+        if (mImageUri != null) {
+            builder.putString(KEY_IMAGE_URI, mImageUri.toString());
+        }
+
+        return builder.build();
     }
 
 }
