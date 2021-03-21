@@ -23,6 +23,7 @@ import android.text.TextUtils;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.work.Data;
+import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkContinuation;
 import androidx.work.WorkManager;
@@ -57,8 +58,9 @@ public class BlurViewModel extends AndroidViewModel {
 //                .build());
 
         //note: 连锁work
-        WorkContinuation continuation = mWorkManager.beginWith(
-                new OneTimeWorkRequest.Builder(CleanupWorker.class).build()
+        WorkContinuation continuation = mWorkManager.beginUniqueWork(Constants.IMAGE_MANIPULATION_WORK_NAME
+                , ExistingWorkPolicy.REPLACE //以新work替代旧work
+                , new OneTimeWorkRequest.Builder(CleanupWorker.class).build()
         );
 
         for (int i = 0; i < blurLevel; i++) {
