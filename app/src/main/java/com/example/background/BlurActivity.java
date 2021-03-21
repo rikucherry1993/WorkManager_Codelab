@@ -17,11 +17,16 @@
 package com.example.background;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.View;
+
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProviders;
+import androidx.work.Data;
+
 import com.bumptech.glide.Glide;
 import com.example.background.databinding.ActivityBlurBinding;
 
@@ -39,6 +44,24 @@ public class BlurActivity extends AppCompatActivity {
 
         // Get the ViewModel
         mViewModel = ViewModelProviders.of(this).get(BlurViewModel.class);
+        //note：监视workInfo
+        mViewModel.getWorkInfo().observe(this, workInfoList -> {
+            // 如果workInfo为空，则返回
+            if (workInfoList == null || workInfoList.isEmpty()) return;
+            // 唯一的workInfo仍在执行中的情况
+            if (!workInfoList.get(0).getState().isFinished()){
+                showWorkInProgress();
+            } else {// 唯一的workInfo结束的情况（由于使用了unique work chain， workInfo只可能存在一个），
+                showWorkFinished();
+                Data finalOutputData = workInfoList.get(0).getOutputData();
+                String finalOutputUri = finalOutputData.getString(Constants.KEY_IMAGE_URI);
+
+                if (!TextUtils.isEmpty(finalOutputUri)) {
+                    mViewModel.setFinalOutputUri(finalOutputUri);
+                    binding.seeFileButton.setVisibility(View.VISIBLE);
+                }
+            }
+        });
 
         // Image uri should be stored in the ViewModel; put it there then display
         Intent intent = getIntent();
@@ -50,6 +73,21 @@ public class BlurActivity extends AppCompatActivity {
 
         // Setup blur image file button
         binding.goButton.setOnClickListener(view -> mViewModel.applyBlur(getBlurLevel()));
+
+        // 按下查看文件按钮时打开已处理的图片
+        binding.seeFileButton.setOnClickListener(view -> {
+            Uri currentUri = mViewModel.getFinalOutputUri();
+            if (currentUri != null) {
+                Intent actionView = new Intent(Intent.ACTION_VIEW, currentUri);
+                if (actionView.resolveActivity(getPackageManager())!= null) {
+                    startActivity(actionView);
+                }
+            }
+        });
+
+        binding.cancelButton.setOnClickListener(view -> {
+            mViewModel.cancelWork();
+        });
     }
 
     /**

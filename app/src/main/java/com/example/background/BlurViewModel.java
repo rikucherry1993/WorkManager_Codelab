@@ -22,15 +22,19 @@ import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
+import androidx.lifecycle.LiveData;
 import androidx.work.Data;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkContinuation;
+import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
 import com.example.background.workers.BlurWorker;
 import com.example.background.workers.CleanupWorker;
 import com.example.background.workers.SaveImageToFileWorker;
+
+import java.util.List;
 
 import static com.example.background.Constants.KEY_IMAGE_URI;
 
@@ -39,9 +43,24 @@ public class BlurViewModel extends AndroidViewModel {
     private Uri mImageUri;
     private WorkManager mWorkManager;
 
+    //note: 使用livedata获取并储存被Tag标记过的workInfo
+    private LiveData<List<WorkInfo>> mWorkInfo;
+
+    private Uri mFinalOutputUri;
+
     public BlurViewModel(@NonNull Application application) {
         super(application);
         mWorkManager = WorkManager.getInstance(application);
+        mWorkInfo = mWorkManager.getWorkInfosByTagLiveData(Constants.TAG_OUTPUT);
+    }
+
+    /**
+     * 向View层传递workInfo
+     *
+     * @return mWorkInfo 存储图片work的workInfo
+     */
+    public LiveData<List<WorkInfo>> getWorkInfo(){
+        return mWorkInfo;
     }
 
     /**
@@ -75,7 +94,9 @@ public class BlurViewModel extends AndroidViewModel {
         }
 
 
-        continuation = continuation.then(new OneTimeWorkRequest.Builder(SaveImageToFileWorker.class).build());
+        continuation = continuation.then(new OneTimeWorkRequest.Builder(SaveImageToFileWorker.class)
+                .addTag(Constants.TAG_OUTPUT)
+                .build());
         continuation.enqueue();
     }
 
@@ -108,6 +129,18 @@ public class BlurViewModel extends AndroidViewModel {
         }
 
         return builder.build();
+    }
+
+    public Uri getFinalOutputUri() {
+        return mFinalOutputUri;
+    }
+
+    public void setFinalOutputUri(String OutputUri) {
+        this.mFinalOutputUri = uriOrNull(OutputUri);
+    }
+
+    public void cancelWork(){
+        mWorkManager.cancelUniqueWork(Constants.IMAGE_MANIPULATION_WORK_NAME);
     }
 
 }
