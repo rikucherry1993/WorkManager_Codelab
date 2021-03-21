@@ -23,6 +23,7 @@ import android.text.TextUtils;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
+import androidx.work.Constraints;
 import androidx.work.Data;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
@@ -76,6 +77,11 @@ public class BlurViewModel extends AndroidViewModel {
 //                .setInputData(createInputDataForUri())
 //                .build());
 
+        //note: add constraints
+        Constraints constraints = new Constraints.Builder()
+                .setRequiresCharging(true)
+                .build();
+
         //note: 连锁work
         WorkContinuation continuation = mWorkManager.beginUniqueWork(Constants.IMAGE_MANIPULATION_WORK_NAME
                 , ExistingWorkPolicy.REPLACE //以新work替代旧work
@@ -95,6 +101,7 @@ public class BlurViewModel extends AndroidViewModel {
 
 
         continuation = continuation.then(new OneTimeWorkRequest.Builder(SaveImageToFileWorker.class)
+                .setConstraints(constraints)
                 .addTag(Constants.TAG_OUTPUT)
                 .build());
         continuation.enqueue();
