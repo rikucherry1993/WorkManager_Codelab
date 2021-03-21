@@ -45,6 +45,7 @@ public class BlurViewModel extends AndroidViewModel {
 
     /**
      * Create the WorkRequest to apply the blur and save the resulting image
+     *
      * @param blurLevel The amount to blur the image
      */
     void applyBlur(int blurLevel) {
@@ -60,14 +61,19 @@ public class BlurViewModel extends AndroidViewModel {
                 new OneTimeWorkRequest.Builder(CleanupWorker.class).build()
         );
 
-        continuation = continuation.then(
-                new OneTimeWorkRequest.Builder(BlurWorker.class)
-                        .setInputData(createInputDataForUri())
-                        .build()
-        );
+        for (int i = 0; i < blurLevel; i++) {
+            //note: 记得赋值啊
+            OneTimeWorkRequest.Builder blurBuilder = new OneTimeWorkRequest.Builder(BlurWorker.class);
+
+            if (i == 0) {
+                blurBuilder.setInputData(createInputDataForUri());
+            }
+
+            continuation = continuation.then(blurBuilder.build());
+        }
+
+
         continuation = continuation.then(new OneTimeWorkRequest.Builder(SaveImageToFileWorker.class).build());
-
-
         continuation.enqueue();
     }
 
@@ -93,7 +99,7 @@ public class BlurViewModel extends AndroidViewModel {
     }
 
 
-    private Data createInputDataForUri(){
+    private Data createInputDataForUri() {
         Data.Builder builder = new Data.Builder();
         if (mImageUri != null) {
             builder.putString(KEY_IMAGE_URI, mImageUri.toString());
