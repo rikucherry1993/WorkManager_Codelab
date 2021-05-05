@@ -24,7 +24,7 @@ import android.view.View;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.lifecycle.ViewModelProviders;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.work.Data;
 
 import com.bumptech.glide.Glide;
@@ -43,7 +43,8 @@ public class BlurActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         // Get the ViewModel
-        mViewModel = ViewModelProviders.of(this).get(BlurViewModel.class);
+        mViewModel = new ViewModelProvider(this,
+                getDefaultViewModelProviderFactory()).get(BlurViewModel.class);
         //note：监视workInfo
         mViewModel.getWorkInfo().observe(this, workInfoList -> {
             // 如果workInfo为空，则返回
